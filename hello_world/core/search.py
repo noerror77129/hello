@@ -3,7 +3,7 @@ import os
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import re
-from search_engines import Google
+from search_engines.multiple_search_engines import MultipleSearchEngines
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -151,7 +151,7 @@ def WriteEs(jsonout):
             print("再次写入ES失败,放弃写入")
             print(e)
 
-def requests_save(url, host, target_directory,jsonout,driver,t):
+def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch):
     # 创建目标目录，如果不存在
     if not os.path.exists(target_directory):
         os.makedirs(target_directory)
@@ -199,7 +199,11 @@ def requests_save(url, host, target_directory,jsonout,driver,t):
     with open("output.json","a+",encoding="UTF-8") as file:
         file.write(strjsonout)
     # 叫机器人通知
-    NotifyRobot("第"+str(t)+"个:\t"+"url:"+url+","+"hsot:"+host)
+    NotifyRobot("搜索语法："+query+"\n"+"搜索引擎"+str(enginesearch)+"\n"+"url:"+url)
+    # NotifyRobot("url:"+url)
+    with open("downloads/search_result.txt","a+",encoding="UTF-8") as file:
+        file.write(url)
+        file.write("\n")
     # WriteEs(jsonout)
 
 def dicttojson(jsonout):
@@ -224,10 +228,15 @@ def checkIs_Is_valid(link):
 def my_function(query,enginesearch,pages,parent_directory,driver):
     global stop_tasks
     stop_tasks = False
+    return
     print("开始处理","query",query,"\t","enginesearch",enginesearch,"\t","pages",pages)
-    if enginesearch=='google':
-        engine = Google("socks5h://10.5.2.82:1080")
-    results = engine.search(query, pages=pages)
+    if len(enginesearch) != 0:
+        print("使用多引擎搜索",str(enginesearch))
+        engine = MultipleSearchEngines(engines=enginesearch,proxy="socks5h://10.5.2.82:1080")
+    else:
+        print("输入引擎有误")
+        return
+    results = engine.search(query,pages=pages)
     # 为每次搜索创建一个文件夹
     now = datetime.now()
     folder_name = now.strftime("%Y-%m-%d-%H-%M-%S")
@@ -260,9 +269,9 @@ def my_function(query,enginesearch,pages,parent_directory,driver):
         # 读取数据,当is_valid为trues是，进入requests_save
         if checkIs_Is_valid(link) == True:
             print("开始爬取")
-            requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,t)
-        sleep(2)
+            requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch)
     print("处理完成")
+    sleep(2)
 
 
 scheduler = BackgroundScheduler()
@@ -314,10 +323,13 @@ def TimingSearch(params):
     driver = webdriver.Chrome(service=service, options=options)
     driver.set_window_size(1920, 1080)
     # 创建一个调度器
+    print("调度器启动")
+    if not scheduler.running:
+        scheduler.start()
+    # 添加调度任务
     scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,'parent_directory': parent_directory, 'driver': driver},id = random_uuid)
     # 启动调度器
-    print("调度器启动")
-    scheduler.start()
+    # scheduler.start()
     print("调度器创建结束")
     return random_uuid
 
