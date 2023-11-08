@@ -1,27 +1,133 @@
-{% load django_browser_reload %}
-{% load static %}
-
-<!doctype html>
-<html lang="en">
-
+<!DOCTYPE html>
+<html>
 <head>
-    <title>{{ title }}</title>
-    <link rel="stylesheet" href="{% static 'main.css' %}">
-    <link rel="icon" type="image/x-icon" href="data:image/x-icon;,">
+    <title>Web服务前端</title>
 </head>
-
 <body>
-    <div class="App">
-        <header class="App-header">
-            <img src="{% static 'Octocat.png' %}" class="App-logo" alt="logo" />
-            <p>
-                GitHub Codespaces <span class="heart">♥️</span> Django
-            </p>
-            <p class="small">
-                Edit <code>hello_world/templates/index.html</code> and see changes live!
-            </p>
-        </header>
-    </div>
-</body>
+    <div style="display: flex; align-items: flex-start;">
+        <div style="width: 50%;">
+            <label for="url">URL:</label>
+            <input type="text" id="url" name="url" style="width: 100%; margin-bottom: 10px;">
 
+            <label for="keywords">关键词:</label>
+            <input type="text" id="keywords" name="keywords" style="width: 100%; margin-bottom: 10px;">
+
+            <label for="page">Page:</label>
+            <input type="text" id="page" name="page" style="width: 100%; margin-bottom: 10px;">
+
+            <label for="engine">Engine:</label>
+            <select id="engine" name="engine" style="width: 100%; margin-bottom: 10px;" multiple>
+                <option value="Google" selected>Google</option>
+                <option value="Bing">Bing</option>
+                <option value="Yahoo">Yahoo</option>
+                <option value="Duckduckgo">Duckduckgo</option>
+                <option value="Startpage">Startpage</option>
+                <option value="Aol">Aol</option>
+                <option value="Dogpile">Dogpile</option>
+                <option value="Ask">Ask</option>
+                <option value="Mojeek">Mojeek</option>
+                <option value="Brave">Brave</option>
+                <option value="Torch">Torch</option>
+            </select>
+
+            <button onclick="startSearch()">Start</button>
+        </div>
+
+        <div style="width: 50%;">
+            <div id="taskList">
+                <!-- 任务列表将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startSearch() {
+            var url = document.getElementById("url").value.trim();
+            var keywords = document.getElementById("keywords").value.trim();
+            var page = document.getElementById("page").value.trim();
+            var engines = Array.from(document.getElementById("engine").selectedOptions).map(option => option.value);
+
+            if (url === "") {
+                alert("请输入URL");
+                return;
+            }
+            if (page === "") {
+                page = 1;
+            }
+
+            var jsonData = {
+                "query": "site:" + url + " " + keywords,
+                "enginesearch": engines[0], // 默认使用第一个引擎
+                "pages": parseInt(page),
+                "minutes": 1,
+                "parent_directory": "sourcesfile"
+            };
+
+            // 使用Ajax发送POST请求到RunSearchApi
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/api/RunSearchApi", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.status === "success") {
+                        // 添加任务到任务列表
+                        addTask(response.uuid, url, keywords);
+                    } else {
+                        alert("启动搜索失败：" + xhr.statusText);
+                    }
+                } else {
+                    alert("启动搜索失败：" + xhr.statusText);
+                }
+            };
+
+            xhr.send(JSON.stringify(jsonData));
+        }
+
+        function addTask(uuid, url, keywords) {
+            var taskList = document.getElementById("taskList");
+
+            // 创建任务项
+            var taskItem = document.createElement("div");
+
+            // 创建任务名称和结束按钮
+            var taskName = document.createElement("span");
+            taskName.textContent = url + " " + keywords;
+            var endButton = document.createElement("button");
+            endButton.textContent = "End";
+
+            // 在点击结束按钮时，调用endSearch并传递UUID
+            endButton.onclick = function() {
+                endSearch(uuid);
+            };
+
+            taskItem.appendChild(taskName);
+            taskItem.appendChild(endButton);
+            taskList.appendChild(taskItem);
+        }
+
+        function endSearch(uuid) {
+            var jsonData = {
+                "uuid": uuid
+            };
+
+            // 使用Ajax发送POST请求到StopSearchApi
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/api/StopSearchApi", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    alert("停止搜索成功！");
+                    // 可以根据需要处理成功后的逻辑
+                } else {
+                    alert("停止搜索失败：" + xhr.statusText);
+                }
+            };
+
+            xhr.send(JSON.stringify(jsonData));
+        }
+    </script>
+</body>
 </html>
