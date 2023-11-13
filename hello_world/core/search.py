@@ -184,7 +184,7 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch)
             if pngout_base64 is not None:
                 jsonout['status'] = 'success'
                 jsonout['screenshotbase64'] = pngout_base64
-                jsonout['htmlbase64'] = html_source_base64
+                # jsonout['htmlbase64'] = html_source_base64
             else:
                 jsonout['status'] = 'error'
         except Exception as e:
@@ -192,9 +192,9 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch)
             print(f"异常信息: {e}")
         html_content = response.text
         tar_base64 = BeautifulSoupHTML(html_content,url,target_directory+host+'/raw/')
-        if tar_base64 is not None:
-            jsonout['status'] = 'success'
-            jsonout['tarbase64'] = tar_base64
+        # if tar_base64 is not None:
+            # jsonout['status'] = 'success'
+            # jsonout['tarbase64'] = tar_base64
     strjsonout = dicttojson(jsonout)
     with open("output.json","a+",encoding="UTF-8") as file:
         file.write(strjsonout)
@@ -219,6 +219,7 @@ def checklink(link):
     return False
 
 def checkIs_Is_valid(link):
+    return True
     entry_to_modify = SearchWriteSql.objects.filter(link=link).first()
     if entry_to_modify.is_valid:
         return True
@@ -228,11 +229,9 @@ def checkIs_Is_valid(link):
 def my_function(query,enginesearch,pages,parent_directory,driver):
     global stop_tasks
     stop_tasks = False
-    return
-    print("开始处理","query",query,"\t","enginesearch",enginesearch,"\t","pages",pages)
     if len(enginesearch) != 0:
         print("使用多引擎搜索",str(enginesearch))
-        engine = MultipleSearchEngines(engines=enginesearch,proxy="socks5h://10.5.2.82:1080")
+        engine = MultipleSearchEngines(engines=enginesearch)
     else:
         print("输入引擎有误")
         return
@@ -261,11 +260,11 @@ def my_function(query,enginesearch,pages,parent_directory,driver):
         jsonout['result']['text'] = result['text']
         jsonout['@timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         # print(jsonout)
-        # 创建一个json保存搜索结果和爬取结果
-        if checklink(link) == False:
-            # 保存到数据库
-            new_entry = SearchWriteSql(host=host, link=link,is_valid=True ,pub_date=timezone.now())
-            new_entry.save()
+        # # 创建一个json保存搜索结果和爬取结果
+        # if checklink(link) == False:
+        #     # 保存到数据库
+        #     new_entry = SearchWriteSql(host=host, link=link,is_valid=True ,pub_date=timezone.now())
+        #     new_entry.save()
         # 读取数据,当is_valid为trues是，进入requests_save
         if checkIs_Is_valid(link) == True:
             print("开始爬取")
@@ -295,12 +294,17 @@ def SearchEsdata(uuid):
 def TimingSearch(params):
     global global_pages
     random_uuid = str(uuid.uuid4())
-    query = params['query']
+    target_url = params['target_url']
+    keyword = params['keyword']
+    after = params['after']
+    before = params['before']
+    query = dealInput(target_url,keyword=keyword,before=before,after=after)
+    print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
     enginesearch = params['enginesearch']
     pages = params['pages']
     minutes = params['minutes']
     parent_directory = params['parent_directory']
-    print("random_uuid",random_uuid,"\t","query",query,"\t","enginesearch",enginesearch,"\t","pages",pages,"\t","minutes",minutes)
+    print("random_uuid",random_uuid,"\t","enginesearch",enginesearch,"\t","pages",pages,"\t","minutes",minutes)
     # 初始化浏览器
     options = webdriver.ChromeOptions()
     options.add_argument('--no-sandbox')
@@ -319,7 +323,7 @@ def TimingSearch(params):
         "plugins.always_open_pdf_externally": True  # 用于自动下载PDF文件
     }
     options.add_experimental_option("prefs", prefs)
-    service = Service(executable_path='C:/Users/pc/AppData/Local/Programs/Python/Python310/chromedriver.exe')
+    service = Service(executable_path='./tools/chromedriver')
     driver = webdriver.Chrome(service=service, options=options)
     driver.set_window_size(1920, 1080)
     # 创建一个调度器
@@ -342,7 +346,10 @@ def TimingSearchStop(random_uuid):
     return True
 
 def NotifyRobot(mes):
-    URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8675749b-4d33-492e-992a-330f2b318775'
+    # URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=160505dc-156e-4d81-ad5e-273041ad31f8' #正式
+
+    URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8675749b-4d33-492e-992a-330f2b318775' #测试
+
     mHeader = {'Content-Type': 'application/json; charset=UTF-8'}
     mBody = {
     "msgtype": "text",
@@ -352,3 +359,13 @@ def NotifyRobot(mes):
         }
     }
     requests.post(url=URL, json=mBody, headers=mHeader)
+
+def dealInput(target_url,keyword,before,after):
+    query = "site:"+target_url
+    if keyword != "":
+        query = query +" "+"\""+keyword+"\""
+    if before != "":
+        query = query +" "+"before:"+before
+    if after != "":
+        query = query +" "+"after:"+after
+    return query

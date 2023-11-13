@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from .search import TimingSearch,TimingSearchStop,SearchEsdata,NotifyRobot
 from .judgment import judgmentdata
+import sys
 
 def index(request):
     return render(
@@ -23,10 +24,10 @@ def RunSearchApi(request):
         uuid = TimingSearch(params)
         from .models import SearchList
         new_entry = SearchList(uuid=uuid,query=params['query'],minutes=params['minutes'])
-        new_entry.save()
+        # new_entry.save()
         return JsonResponse({'status': 'success', 'uuid': uuid})
     else:
-        NotifyRobot("爷爷在此")
+        # NotifyRobot("爷爷在此")
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 # 停止搜索API
@@ -44,6 +45,8 @@ def StopSearchApi(request):
         else:
             return JsonResponse({'status': 'error', 'message': 'stop error'})
     else:
+        print("终止服务")
+        sys.exit()
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 # 下一次搜索不需要requests_save
