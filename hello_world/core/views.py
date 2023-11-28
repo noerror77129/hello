@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .search import TimingSearch,TimingSearchStop,SearchEsdata,NotifyRobot
+from .search import TimingSearch,TimingSearchStop,SearchEsdata,NotifyRobot_file
 from .judgment import judgmentdata
 import sys
 
@@ -21,13 +21,14 @@ def index(request):
 def RunSearchApi(request):
     if request.method == 'POST':
         params = json.loads(request.body)
-        uuid = TimingSearch(params)
+        uuid,query = TimingSearch(params)
         from .models import SearchList
-        new_entry = SearchList(uuid=uuid,query=params['query'],minutes=params['minutes'])
-        # new_entry.save()
+        new_entry = SearchList(uuid=uuid,query=query,minutes=params['minutes'])
+        new_entry.save()
         return JsonResponse({'status': 'success', 'uuid': uuid})
     else:
-        # NotifyRobot("爷爷在此")
+        print("开始消息发送")
+        NotifyRobot_file("中融汇信期货有限公司")
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 # 停止搜索API
@@ -94,7 +95,7 @@ def EsDataApi(request):
     if request.method == 'POST':
         params = json.loads(request.body)
         uuid = params['uuid']
-        esdata = SearchEsdata("uuid")
+        esdata = SearchEsdata(uuid)
         if esdata:
             return JsonResponse({'status': 'success','data':esdata})
         else:

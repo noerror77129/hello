@@ -1,7 +1,7 @@
 import requests
 import os
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse,quote_plus,parse_qs
 import re
 from search_engines.multiple_search_engines import MultipleSearchEngines
 from selenium import webdriver
@@ -19,6 +19,8 @@ import uuid
 from .models import SearchWriteSql,SearchWriteEs
 from django.utils import timezone
 from time import sleep
+from requests_toolbelt import MultipartEncoder
+
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
@@ -129,12 +131,18 @@ def BeautifulSoupHTML(html_content,url,target_directory):
 def WriteEs(jsonout):
     esuuid = str(uuid.uuid4())
     current_date = datetime.now().strftime('%Y-%m-%d')
-    index_name = f'webpage_{current_date}'
+    index_name = f'webpage{current_date}'
     jsonout["@uuid"] = esuuid
     try:
+        print("index:",index_name,"\t")
         response = es.index(index= index_name, body= jsonout)
         # 写入数据库
-        new_entry = SearchWriteEs(esuuid=uuid, link=jsonout['result']['link'], host=jsonout['result']['host'])
+        print("index:",index_name,"\t")
+
+        new_entry = SearchWriteEs(esuuid=esuuid, link=jsonout['result']['link'], host=jsonout['result']['host'])
+        print("index:",index_name,"\t")
+        
+        print(new_entry)
         new_entry.save()
         print(response)
     except Exception as e:
@@ -151,7 +159,7 @@ def WriteEs(jsonout):
             print("再次写入ES失败,放弃写入")
             print(e)
 
-def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch):
+def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,target_name):
     # 创建目标目录，如果不存在
     if not os.path.exists(target_directory):
         os.makedirs(target_directory)
@@ -164,7 +172,7 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch)
         strjsonout = dicttojson(jsonout)
         with open("output.json","a+",encoding="UTF-8") as file:
             file.write(strjsonout)
-        # WriteEs(jsonout)
+        WriteEs(jsonout)
         print(url,"这个请求无法访问")
         return
     if response.status_code == 302:
@@ -196,15 +204,16 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch)
             # jsonout['status'] = 'success'
             # jsonout['tarbase64'] = tar_base64
     strjsonout = dicttojson(jsonout)
-    with open("output.json","a+",encoding="UTF-8") as file:
+    with open(target_name+".json","a+",encoding="UTF-8") as file:
         file.write(strjsonout)
     # 叫机器人通知
-    NotifyRobot("搜索语法："+query+"\n"+"搜索引擎"+str(enginesearch)+"\n"+"url:"+url)
+    # NotifyRobot("搜索语法："+query+"\n"+"搜索引擎"+str(enginesearch)+"\n"+"url:"+url)
     # NotifyRobot("url:"+url)
-    with open("downloads/search_result.txt","a+",encoding="UTF-8") as file:
+    
+    with open("downloads/"+target_name+".txt","a+",encoding="UTF-8") as file:
         file.write(url)
         file.write("\n")
-    # WriteEs(jsonout)
+    WriteEs(jsonout)
 
 def dicttojson(jsonout):
     jsonout = json.dumps(jsonout, ensure_ascii=False)
@@ -219,14 +228,13 @@ def checklink(link):
     return False
 
 def checkIs_Is_valid(link):
-    return True
     entry_to_modify = SearchWriteSql.objects.filter(link=link).first()
     if entry_to_modify.is_valid:
         return True
     return False
     
 
-def my_function(query,enginesearch,pages,parent_directory,driver):
+def my_function(query,enginesearch,pages,parent_directory,driver,target_name,target_url):
     global stop_tasks
     stop_tasks = False
     if len(enginesearch) != 0:
@@ -241,8 +249,9 @@ def my_function(query,enginesearch,pages,parent_directory,driver):
     folder_name = now.strftime("%Y-%m-%d-%H-%M-%S")
     folder_path = os.path.join(parent_directory, folder_name)
     os.makedirs(folder_path, exist_ok=True)
-    print("搜索到结果数为：@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",len(results))
+    print(target_name,"搜索到结果数为：@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",len(results))
     t = 1
+    target_name = target_name+"-"+quote_plus(target_url)
     for result in results:
         print("开始域名第个域名",t,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",result['link'])
         t=t+1
@@ -259,26 +268,29 @@ def my_function(query,enginesearch,pages,parent_directory,driver):
         jsonout['result']['title'] = result['title']
         jsonout['result']['text'] = result['text']
         jsonout['@timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        # print(jsonout)
-        # # 创建一个json保存搜索结果和爬取结果
-        # if checklink(link) == False:
-        #     # 保存到数据库
-        #     new_entry = SearchWriteSql(host=host, link=link,is_valid=True ,pub_date=timezone.now())
-        #     new_entry.save()
+        print(jsonout)
+        # 创建一个json保存搜索结果和爬取结果
+        if checklink(link) == False:
+            # 保存到数据库
+            new_entry = SearchWriteSql(host=host, link=link,is_valid=True ,pub_date=timezone.now())
+            new_entry.save()
         # 读取数据,当is_valid为trues是，进入requests_save
         if checkIs_Is_valid(link) == True:
             print("开始爬取")
-            requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch)
+            requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch,target_name)
+    NotifyRobot_file(target_name)
+    delete_file(target_name)
     print("处理完成")
     sleep(2)
 
 
 scheduler = BackgroundScheduler()
 es = Elasticsearch(
-    [{'host': '10.67.29.200', 'port': 9200,'scheme':'https'}],
-    http_auth=('elastic', 'ueKnH7rW+IFOa*li6j6L'),
+    [{'host': '10.67.31.200', 'port': 9200,'scheme':'https'}],
+    http_auth=('elastic', 'admin@12345'),
     verify_certs=False
 )
+
 def SearchEsdata(uuid):
     index = f"webpage_*"
     query_body = {
@@ -302,6 +314,7 @@ def TimingSearch(params):
     print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
     enginesearch = params['enginesearch']
     pages = params['pages']
+    target_name = params['name']
     minutes = params['minutes']
     parent_directory = params['parent_directory']
     print("random_uuid",random_uuid,"\t","enginesearch",enginesearch,"\t","pages",pages,"\t","minutes",minutes)
@@ -331,11 +344,11 @@ def TimingSearch(params):
     if not scheduler.running:
         scheduler.start()
     # 添加调度任务
-    scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,'parent_directory': parent_directory, 'driver': driver},id = random_uuid)
+    scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,'parent_directory': parent_directory, 'driver': driver,'target_name': target_name,'target_url':target_url},id = random_uuid)
     # 启动调度器
     # scheduler.start()
     print("调度器创建结束")
-    return random_uuid
+    return random_uuid,query
 
 def TimingSearchStop(random_uuid):
     print("调度器停止")
@@ -345,7 +358,7 @@ def TimingSearchStop(random_uuid):
     print("调度器停止结束")
     return True
 
-def NotifyRobot(mes):
+def NotifyRobot_url(mes):
     # URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=160505dc-156e-4d81-ad5e-273041ad31f8' #正式
 
     URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8675749b-4d33-492e-992a-330f2b318775' #测试
@@ -360,6 +373,24 @@ def NotifyRobot(mes):
     }
     requests.post(url=URL, json=mBody, headers=mHeader)
 
+def NotifyRobot_file(filename):
+    # URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=160505dc-156e-4d81-ad5e-273041ad31f8' #正式
+    print("reach here")
+    URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8675749b-4d33-492e-992a-330f2b318775' #测试
+    file = "downloads/"+filename+".txt"
+    if not os.path.exists(file):
+        print("文件不存在")
+        return
+    mHeader = {"Content-Type" : "text/plain"}
+    mBody = {
+    "msgtype": "file",
+    "file": {
+         "media_id": UploadFile(file,URL)
+        }
+    }
+    
+    requests.post(url=URL, json=mBody, headers=mHeader)
+
 def dealInput(target_url,keyword,before,after):
     query = "site:"+target_url
     if keyword != "":
@@ -369,3 +400,42 @@ def dealInput(target_url,keyword,before,after):
     if after != "":
         query = query +" "+"after:"+after
     return query
+
+def UploadFile(filepath, webHookUrl):
+    """
+    企业微信机器人上传文件，发送文件前需要先上传--要求文件大小在5B~20M之间
+    :param filepath: 文件路径
+    :param webHookUrl: 群组机器人WebHook
+    :return: media_id
+    """
+    # url为群组机器人WebHook，配置项
+    url = webHookUrl
+    params = parse_qs( urlparse( webHookUrl ).query )
+    webHookKey=params['key'][0]
+    upload_url = f'https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key={webHookKey}&type=file'
+    headers = {"Accept": "application/json, text/plain, */*", "Accept-Encoding": "gzip, deflate",
+               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36"}
+    filename = os.path.basename(filepath)
+    try:
+        multipart = MultipartEncoder(
+            fields={'filename': filename, 'filelength': '', 'name': 'media', 'media': (filename, open(filepath, 'rb'), 'application/octet-stream')},
+            boundary='-------------------------acebdf13572468')
+        headers['Content-Type'] = multipart.content_type
+        resp = requests.post(upload_url, headers=headers, data=multipart)
+        json_res = resp.json()
+        if json_res.get('media_id'):
+            # print(f"企业微信机器人上传文件成功，file:{filepath}")
+            return json_res.get('media_id')
+    except Exception as e:
+        # print(f"企业微信机器人上传文件失败，file: {filepath}, 详情：{e}")
+        print("企业微信机器人上传文件失败,详细信息:" + str(e))
+        return ""
+
+        
+def delete_file(filename):
+    filename = "downloads/"+filename+".txt"
+    try:
+        os.remove(filename)
+        print(f"文件 '{filename}' 已成功删除。")
+    except OSError as e:
+        print(f"删除文件时发生错误: {e}")
