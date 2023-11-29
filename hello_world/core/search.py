@@ -166,46 +166,50 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,
 
     # 访问网站
     print("访问￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥",url)
-    response = get(url)
-    if response is None:
-        jsonout['status'] = 'error'
-        strjsonout = dicttojson(jsonout)
-        with open("output.json","a+",encoding="UTF-8") as file:
-            file.write(strjsonout)
-        WriteEs(jsonout)
-        print(url,"这个请求无法访问")
+    if not is_url_accessible(url):
         return
-    if response.status_code == 302:
-        # 捕获重定向的URL
-        redirect_url = response.headers.get("Location")
-        jsonout['status'] = 'redirect'
-        jsonout['redirect_url'] = redirect_url
-        # print(f"Redirect URL: {redirect_url}")
-        print(url,"这个请求重定向了")
-    else:
-        # 截图保存html
-        try:
-            driver.get(url)
-            pngout_base64 = driver.get_screenshot_as_base64()
-            html_source = driver.page_source
-            html_source_base64 = base64.b64encode(html_source.encode("utf-8")).decode("utf-8")
-            if pngout_base64 is not None:
-                jsonout['status'] = 'success'
-                jsonout['screenshotbase64'] = pngout_base64
-                # jsonout['htmlbase64'] = html_source_base64
-            else:
-                jsonout['status'] = 'error'
-        except Exception as e:
-            print(f"捕获到异常: {type(e).__name__}")
-            print(f"异常信息: {e}")
-        html_content = response.text
-        tar_base64 = BeautifulSoupHTML(html_content,url,target_directory+host+'/raw/')
-        # if tar_base64 is not None:
-            # jsonout['status'] = 'success'
-            # jsonout['tarbase64'] = tar_base64
-    strjsonout = dicttojson(jsonout)
-    with open(target_name+".json","a+",encoding="UTF-8") as file:
-        file.write(strjsonout)
+#**************************************************#暂时不存储文件
+    # response = get(url)
+    # if response is None or response.status_code == 404:
+    #     jsonout['status'] = 'error'
+    #     strjsonout = dicttojson(jsonout)
+    #     with open("output.json","a+",encoding="UTF-8") as file:
+    #         file.write(strjsonout)
+    #     WriteEs(jsonout)
+    #     print(url,"这个请求无法访问")
+    #     return
+    # if response.status_code == 302:
+    #     # 捕获重定向的URL
+    #     redirect_url = response.headers.get("Location")
+    #     jsonout['status'] = 'redirect'
+    #     jsonout['redirect_url'] = redirect_url
+    #     print(url,"这个请求重定向了")
+    # else:
+    #     # 截图保存html
+    #     try:
+    #         driver.get(url)
+    #         pngout_base64 = driver.get_screenshot_as_base64()
+    #         html_source = driver.page_source
+    #         html_source_base64 = base64.b64encode(html_source.encode("utf-8")).decode("utf-8")
+    #         if pngout_base64 is not None:
+    #             jsonout['status'] = 'success'
+    #             jsonout['screenshotbase64'] = pngout_base64
+    #             jsonout['htmlbase64'] = html_source_base64
+    #         else:
+    #             jsonout['status'] = 'error'
+    #     except Exception as e:
+    #         print(f"捕获到异常: {type(e).__name__}")
+    #         print(f"异常信息: {e}")
+    #     html_content = response.text
+    #     tar_base64 = BeautifulSoupHTML(html_content,url,target_directory+host+'/raw/')
+    #     if tar_base64 is not None:
+    #         jsonout['status'] = 'success'
+    #         jsonout['tarbase64'] = tar_base64
+    # strjsonout = dicttojson(jsonout)
+    # with open(target_name+".json","a+",encoding="UTF-8") as file:
+    #     file.write(strjsonout)
+#*************************************************************#
+
     # 叫机器人通知
     # NotifyRobot("搜索语法："+query+"\n"+"搜索引擎"+str(enginesearch)+"\n"+"url:"+url)
     # NotifyRobot("url:"+url)
@@ -213,7 +217,7 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,
     with open("downloads/"+target_name+".txt","a+",encoding="UTF-8") as file:
         file.write(url)
         file.write("\n")
-    WriteEs(jsonout)
+    # WriteEs(jsonout)
 
 def dicttojson(jsonout):
     jsonout = json.dumps(jsonout, ensure_ascii=False)
@@ -234,16 +238,23 @@ def checkIs_Is_valid(link):
     return False
     
 
-def my_function(query,enginesearch,pages,parent_directory,driver,target_name,target_url):
+def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_name,protocol,target_url):
     global stop_tasks
     stop_tasks = False
     if len(enginesearch) != 0:
         print("使用多引擎搜索",str(enginesearch))
-        engine = MultipleSearchEngines(engines=enginesearch)
+        engine = MultipleSearchEngines(engines=enginesearch,proxy=proxy)
     else:
         print("输入引擎有误")
         return
-    results = engine.search(query,pages=pages)
+    # 进行搜索
+    try:
+        results = mysearch(engine,query, pages=pages)
+    except Exception as e:
+        print("搜索失败，达到最大尝试次数。错误信息:", e)
+        return
+    if len(results) == 0:
+        print("未搜索到数据，处理完成！")
     # 为每次搜索创建一个文件夹
     now = datetime.now()
     folder_name = now.strftime("%Y-%m-%d-%H-%M-%S")
@@ -278,10 +289,12 @@ def my_function(query,enginesearch,pages,parent_directory,driver,target_name,tar
         if checkIs_Is_valid(link) == True:
             print("开始爬取")
             requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch,target_name)
+    is_file_empty = process_file(target_name,protocol)
+    if is_file_empty:
+        print("数据不满足要求，处理完成!")
     NotifyRobot_file(target_name)
     delete_file(target_name)
-    print("处理完成")
-    sleep(2)
+    print("已文件告知，处理完成!")
 
 
 scheduler = BackgroundScheduler()
@@ -311,11 +324,14 @@ def TimingSearch(params):
     after = params['after']
     before = params['before']
     query = dealInput(target_url,keyword=keyword,before=before,after=after)
+    protocol = get_url_protocol(target_url)
     print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
+    print("搜索协议为^^^^^^^^^^^^^^^^^^^^^"+protocol)
     enginesearch = params['enginesearch']
     pages = params['pages']
     target_name = params['name']
     minutes = params['minutes']
+    proxy = params['proxy']
     parent_directory = params['parent_directory']
     print("random_uuid",random_uuid,"\t","enginesearch",enginesearch,"\t","pages",pages,"\t","minutes",minutes)
     # 初始化浏览器
@@ -344,7 +360,7 @@ def TimingSearch(params):
     if not scheduler.running:
         scheduler.start()
     # 添加调度任务
-    scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,'parent_directory': parent_directory, 'driver': driver,'target_name': target_name,'target_url':target_url},id = random_uuid)
+    scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,"proxy":proxy,'parent_directory': parent_directory, 'driver': driver,'target_name': target_name,"protocol" : protocol,'target_url':target_url},id = random_uuid)
     # 启动调度器
     # scheduler.start()
     print("调度器创建结束")
@@ -439,3 +455,65 @@ def delete_file(filename):
         print(f"文件 '{filename}' 已成功删除。")
     except OSError as e:
         print(f"删除文件时发生错误: {e}")
+
+def get_url_protocol(url):
+    parsed_url = urlparse(url)
+    return parsed_url.scheme if parsed_url.scheme else None
+
+def process_file(file_path, target_protocol):
+    file_path = "downloads/"+file_path+".txt"
+    # 判断文件是否存在
+    if not os.path.exists(file_path):
+        return True
+    # 读取文件中的所有行
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    # 去除与目标协议不同的URL
+    filtered_urls = [url.strip() for url in lines if get_url_protocol(url) == target_protocol]
+
+    # 对URL进行去重
+    unique_urls = list(set(filtered_urls))
+
+    # 将处理后的URL写回文件
+    with open(file_path, 'w') as file:
+        file.write('\n'.join(unique_urls))
+
+    # 判断文件是否为空
+    is_file_empty = not bool(unique_urls)
+    return is_file_empty
+
+def is_url_accessible(url, timeout=10):
+    try:
+        response = requests.get(url,timeout=timeout,allow_redirects=False,verify=False,headers=headers)
+        # 检查响应状态码，200表示成功
+        if response.status_code == 200:
+            print(f"URL '{url}' 可访问。")
+            return True
+        else:
+            print(f"URL '{url}' 返回状态码: {response.status_code}")
+            return False
+    except requests.ConnectionError:
+        print(f"无法连接到URL '{url}'，可能是因为网络问题。")
+        return False
+    except requests.Timeout:
+        print(f"访问URL '{url}' 超时。")
+        return False
+    except requests.RequestException as e:
+        print(f"发生请求异常: {e}")
+        return False
+
+# 封装搜索，以便重试
+def mysearch(engine,query, pages, max_retries=5):
+    for attempt in range(1, max_retries + 1):
+        try:
+            results = engine.search(query, pages=pages)
+            return results  # 如果成功，则立即返回结果
+        except Exception as e:
+            print(f"重试 {attempt}/{max_retries}，发生错误: {e}")
+            if attempt < max_retries:
+                # 如果尚未达到最大重试次数，继续重试
+                continue
+            else:
+                # 达到最大重试次数时，抛出异常或进行其他处理
+                raise
