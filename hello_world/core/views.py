@@ -27,8 +27,8 @@ def RunSearchApi(request):
         new_entry.save()
         return JsonResponse({'status': 'success', 'uuid': uuid})
     else:
-        print("开始消息发送")
-        NotifyRobot_file("中融汇信期货有限公司")
+        # print("开始消息发送")
+        # NotifyRobot_file("中融汇信期货有限公司")
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 # 停止搜索API

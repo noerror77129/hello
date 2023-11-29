@@ -32,6 +32,25 @@ headers = {
     "Cache-Control": "max-age=0"
 }
 
+# 全局变量控制任务停止
+stop_tasks_list = []
+
+# 函数来新增uuid到列表
+def add_taskid(uuid):
+    global stop_tasks_list
+    stop_tasks_list.append(uuid)
+
+# 函数来判断uuid是否存在于列表中
+def exists_taskid(uuid):
+    global stop_tasks_list
+    return uuid in stop_tasks_list
+
+# 函数来删除uuid
+def remove_string(uuid):
+    global stop_tasks_list
+    if uuid in stop_tasks_list:
+        stop_tasks_list.remove(uuid)
+
 # 对requests.get()方法进行封装，设置超时时间、禁止重定向、禁用SSL证书验证
 def get(url):
     try:
@@ -238,9 +257,8 @@ def checkIs_Is_valid(link):
     return False
     
 
-def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_name,protocol,target_url):
-    global stop_tasks
-    stop_tasks = False
+def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_name,protocol,target_url,random_uuid):
+    add_taskid(random_uuid)
     if len(enginesearch) != 0:
         print("使用多引擎搜索",str(enginesearch))
         engine = MultipleSearchEngines(engines=enginesearch,proxy=proxy)
@@ -251,7 +269,9 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
     try:
         results = mysearch(engine,query, pages=pages)
     except Exception as e:
-        print("搜索失败，达到最大尝试次数。错误信息:", e)
+        # 如果达到最大重试次数，从任务队列中删除任务
+        print("搜索失败，达到最大尝试次数。错误信息:", e)            
+        TimingSearchStop(random_uuid)
         return
     if len(results) == 0:
         print("未搜索到数据，处理完成！")
@@ -266,7 +286,7 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
     for result in results:
         print("开始域名第个域名",t,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",result['link'])
         t=t+1
-        if stop_tasks:
+        if not exists_taskid(random_uuid):
             print("停止任务")
             return
         link = result['link']
@@ -317,7 +337,6 @@ def SearchEsdata(uuid):
     print(res)
 
 def TimingSearch(params):
-    global global_pages
     random_uuid = str(uuid.uuid4())
     target_url = params['target_url']
     keyword = params['keyword']
@@ -360,7 +379,8 @@ def TimingSearch(params):
     if not scheduler.running:
         scheduler.start()
     # 添加调度任务
-    scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,"proxy":proxy,'parent_directory': parent_directory, 'driver': driver,'target_name': target_name,"protocol" : protocol,'target_url':target_url},id = random_uuid)
+    scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,"proxy":proxy,'parent_directory': parent_directory, 'driver': driver,'target_name': target_name,"protocol" : protocol,"target_url":target_url,"random_uuid":random_uuid},id = random_uuid)
+
     # 启动调度器
     # scheduler.start()
     print("调度器创建结束")
@@ -368,9 +388,16 @@ def TimingSearch(params):
 
 def TimingSearchStop(random_uuid):
     print("调度器停止")
-    global stop_tasks
-    stop_tasks = True
-    scheduler.remove_job(random_uuid)
+    remove_string(random_uuid)
+    # 检查任务是否存在
+    job = scheduler.get_job(random_uuid)
+    if job:
+        # 如果任务存在，就停止任务
+        scheduler.remove_job(random_uuid)
+        print(f"任务 {random_uuid} 已停止")
+    else:
+        print(f"任务 {random_uuid} 不存在")
+
     print("调度器停止结束")
     return True
 
