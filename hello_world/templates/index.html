@@ -168,11 +168,11 @@
                 if (data.status === 'success') {
                     // 如果有数据，显示query_value和minutes_value
                     const queryValue = data.data.query_value;
-                    const minutesValue = data.data.minutes_value;
+                    const request_body_value = data.data.request_body_value;
 
-                    // 创建展示区域
+                    // 创建展示区域R
                     const displayArea = document.createElement('div');
-                    displayArea.innerHTML = `<p>Query Value: ${queryValue}</p><p>Minutes Value: ${minutesValue}</p>`;
+                    displayArea.innerHTML = `<p>Query Value: ${queryValue}</p><p>RequestBody Value: ${request_body_value}</p>`;
                     jsonDisplay.appendChild(displayArea);
                 } else {
                     // 如果没有数据，显示提示信息

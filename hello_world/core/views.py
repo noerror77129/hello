@@ -106,7 +106,7 @@ def EsDataApi(request):
 def GetSearchListApi(request):
     if request.method == 'POST':
         from .models import SearchList
-        entry_to_modify = SearchList.objects.all()
+        entry_to_modify = SearchList.objects.all().order_by('-pub_date')
         if entry_to_modify:
             # Extract only the 'query' field from each entry
             data = [entry.uuid for entry in entry_to_modify]
@@ -127,7 +127,7 @@ def GetSearchqueryApi(request):
         if search_res:
             response_data = {
                 'query_value': search_res.query,
-                'minutes_value': search_res.minutes,
+                'request_body_value': search_res.request_body,
                 }
             return JsonResponse({'status': 'success','data':response_data})
         else:

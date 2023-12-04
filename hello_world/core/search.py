@@ -184,7 +184,7 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,
         os.makedirs(target_directory)
 
     # 访问网站
-    print("访问￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥",url)
+    # print("访问￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥",url)
     if not is_url_accessible(url):
         return
 #**************************************************#暂时不存储文件
@@ -279,24 +279,32 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
     folder_name = now.strftime("%Y-%m-%d-%H-%M-%S")
     folder_path = os.path.join(parent_directory, folder_name)
     os.makedirs(folder_path, exist_ok=True)
-    print(target_name,"搜索到结果数为：@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",len(results))
+    print(target_name,"搜索到结果数为：@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",len(results),protocol)
     t = 1
     target_name = target_name+"-"+quote_plus(target_url)
     save_urls_name =  "save_urls/"+target_name+".txt"
+    last_result = []
     if os.path.exists(save_urls_name):
         last_result = read_file(save_urls_name)
         write_to_file_top(save_urls_name,"-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
     else:
-        write_to_file_top(save_urls_name,"-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
-
+        with open(save_urls_name, 'a+',encoding="UTF-8") as file:
+            file.write("-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
     for result in results:
         print("开始域名第个域名",t,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",result['link'])
         t=t+1
         if not exists_taskid(random_uuid):
             print("停止任务")
             return
-        if result in last_result:
+        
+        if not get_url_protocol(result['link']) == protocol:
+            print("协议不满足，跳过")
             continue
+
+        if result['link'] in last_result:
+            print("已处理过数据，跳过")
+            continue
+
         link = result['link']
         host = result['host']            
         jsonout = {}
@@ -307,7 +315,7 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
         jsonout['result']['title'] = result['title']
         jsonout['result']['text'] = result['text']
         jsonout['@timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        print(jsonout)
+        # print(jsonout)
         # 创建一个json保存搜索结果和爬取结果
         if checklink(link) == False:
             # 保存到数据库
@@ -317,11 +325,9 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
         if checkIs_Is_valid(link) == True:
             print("开始爬取")
             requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch,save_urls_name)
-    is_file_empty = process_file(save_urls_name,protocol)
-    if is_file_empty:
-        print("数据不满足要求，处理完成!")
+
     NotifyRobot_file(save_urls_name)
-    delete_file(save_urls_name)
+
     print("已文件告知，处理完成!")
 
 
@@ -502,7 +508,7 @@ def process_file(file_path, target_protocol):
         lines = file.readlines()
 
     # 去除与目标协议不同的URL
-    filtered_urls = [url.strip() for url in lines if get_url_protocol(url) == target_protocol]
+    filtered_urls = [url.strip() for url in lines if url.startswith('-') or get_url_protocol(url) == target_protocol]
 
     # 对URL进行去重
     unique_urls = list(set(filtered_urls))
@@ -554,7 +560,7 @@ def read_file(file_path):
     try:
         with open(file_path, 'r') as file:
             # 使用 readlines 方法读取文件内容并返回一个包含每行数据的列表
-            lines = file.readlines()
+            lines = [line.strip() for line in file.readlines()]
             return lines
     except FileNotFoundError:
         print(f"File not found: {file_path}")
@@ -562,7 +568,7 @@ def read_file(file_path):
     
 def write_to_file_top(file_path, data):
     try:
-        with open(file_path, 'r+') as file:
+        with open(file_path, 'r+',encoding="UTF-8") as file:
             content = file.read()
             file.seek(0, 0)
             file.write(data + '\n' + content)
