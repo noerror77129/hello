@@ -26,6 +26,8 @@ urlpatterns = [
     path("api/StopSearchApi", core_views.StopSearchApi),
     # 获取搜索任务列表
     path("api/GetSearchListApi", core_views.GetSearchListApi),
+    # 获取搜索任务对应的搜索数据
+    path("api/GetSearchqueryApi", core_views.GetSearchqueryApi),
     # 基于es的uuid查询数据
     path("api/SearchEsdataApi", core_views.EsDataApi),
     # 下一次搜索不需要requests_save

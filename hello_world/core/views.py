@@ -108,7 +108,27 @@ def GetSearchListApi(request):
         from .models import SearchList
         entry_to_modify = SearchList.objects.all()
         if entry_to_modify:
-            data = serializers.serialize('json', entry_to_modify)
-            return JsonResponse({'status': 'success','data':data},safe=False)
+            # Extract only the 'query' field from each entry
+            data = [entry.uuid for entry in entry_to_modify]
+            return JsonResponse({'status': 'success', 'data': data}, safe=False)
+        else:
+            return JsonResponse({'status': 'error', 'data': 'no data'})
+
+# 获取搜索任务对应的搜索数据
+@csrf_exempt
+def GetSearchqueryApi(request):
+    if request.method == 'POST':
+        params = json.loads(request.body)
+        uuid = params['uuid']
+        from .models import SearchList
+        search_res = SearchList.objects.filter(uuid=uuid).first()
+        print(search_res)
+        # 检查是否找到匹配的记录
+        if search_res:
+            response_data = {
+                'query_value': search_res.query,
+                'minutes_value': search_res.minutes,
+                }
+            return JsonResponse({'status': 'success','data':response_data})
         else:
             return JsonResponse({'status': 'error', 'data': 'no data'})
