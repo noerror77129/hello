@@ -21,5 +21,6 @@ class SearchWriteEs(models.Model):
 class SearchList(models.Model):
     uuid = models.CharField(max_length=200)
     query = models.TextField()
+    request_body = models.TextField(null=True,default='{}')
     minutes = models.IntegerField(default=0)
     pub_date = models.DateTimeField(auto_now_add=True)

@@ -178,7 +178,7 @@ def WriteEs(jsonout):
             print("再次写入ES失败,放弃写入")
             print(e)
 
-def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,target_name):
+def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,save_urls_name):
     # 创建目标目录，如果不存在
     if not os.path.exists(target_directory):
         os.makedirs(target_directory)
@@ -233,9 +233,8 @@ def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,
     # NotifyRobot("搜索语法："+query+"\n"+"搜索引擎"+str(enginesearch)+"\n"+"url:"+url)
     # NotifyRobot("url:"+url)
     
-    with open("downloads/"+target_name+".txt","a+",encoding="UTF-8") as file:
-        file.write(url)
-        file.write("\n")
+
+    write_to_file_top(save_urls_name,url)
     # WriteEs(jsonout)
 
 def dicttojson(jsonout):
@@ -283,12 +282,21 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
     print(target_name,"搜索到结果数为：@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",len(results))
     t = 1
     target_name = target_name+"-"+quote_plus(target_url)
+    save_urls_name =  "save_urls/"+target_name+".txt"
+    if os.path.exists(save_urls_name):
+        last_result = read_file(save_urls_name)
+        write_to_file_top(save_urls_name,"-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
+    else:
+        write_to_file_top(save_urls_name,"-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
+
     for result in results:
         print("开始域名第个域名",t,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",result['link'])
         t=t+1
         if not exists_taskid(random_uuid):
             print("停止任务")
             return
+        if result in last_result:
+            continue
         link = result['link']
         host = result['host']            
         jsonout = {}
@@ -308,12 +316,12 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
         # 读取数据,当is_valid为trues是，进入requests_save
         if checkIs_Is_valid(link) == True:
             print("开始爬取")
-            requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch,target_name)
-    is_file_empty = process_file(target_name,protocol)
+            requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch,save_urls_name)
+    is_file_empty = process_file(save_urls_name,protocol)
     if is_file_empty:
         print("数据不满足要求，处理完成!")
-    NotifyRobot_file(target_name)
-    delete_file(target_name)
+    NotifyRobot_file(save_urls_name)
+    delete_file(save_urls_name)
     print("已文件告知，处理完成!")
 
 
@@ -420,15 +428,14 @@ def NotifyRobot_file(filename):
     # URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=160505dc-156e-4d81-ad5e-273041ad31f8' #正式
     print("reach here")
     URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8675749b-4d33-492e-992a-330f2b318775' #测试
-    file = "downloads/"+filename+".txt"
-    if not os.path.exists(file):
+    if not os.path.exists(filename):
         print("文件不存在")
         return
     mHeader = {"Content-Type" : "text/plain"}
     mBody = {
     "msgtype": "file",
     "file": {
-         "media_id": UploadFile(file,URL)
+         "media_id": UploadFile(filename,URL)
         }
     }
     
@@ -476,7 +483,6 @@ def UploadFile(filepath, webHookUrl):
 
         
 def delete_file(filename):
-    filename = "downloads/"+filename+".txt"
     try:
         os.remove(filename)
         print(f"文件 '{filename}' 已成功删除。")
@@ -488,7 +494,6 @@ def get_url_protocol(url):
     return parsed_url.scheme if parsed_url.scheme else None
 
 def process_file(file_path, target_protocol):
-    file_path = "downloads/"+file_path+".txt"
     # 判断文件是否存在
     if not os.path.exists(file_path):
         return True
@@ -544,3 +549,22 @@ def mysearch(engine,query, pages, max_retries=5):
             else:
                 # 达到最大重试次数时，抛出异常或进行其他处理
                 raise
+
+def read_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            # 使用 readlines 方法读取文件内容并返回一个包含每行数据的列表
+            lines = file.readlines()
+            return lines
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return []
+    
+def write_to_file_top(file_path, data):
+    try:
+        with open(file_path, 'r+') as file:
+            content = file.read()
+            file.seek(0, 0)
+            file.write(data + '\n' + content)
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
