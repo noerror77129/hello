@@ -1,188 +1,78 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Application</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        .input-section {
-            /* 样式定义 */
-            margin: 10px;
-        }
-        .output-section {
-            display: flex;
-            flex: 1;
-        }
-        .left-section {
-            /* 样式定义 */
-            flex: 1;
-            padding: 10px;
-        }
-        .right-section {
-            /* 样式定义 */
-            flex: 1;
-            padding: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
     <div class="container">
-        <div class="input-section">
-            <h2>Search Parameters</h2>
-            <label for="target_url">Target URL:</label>
-            <input type="text" id="target_url" placeholder="Enter target URL">
-            <label for="keyword">Keyword:</label>
-            <input type="text" id="keyword" placeholder="Enter keyword">
-            <label for="after">After:</label>
-            <input type="text" id="after" placeholder="Enter after">
-            <label for="before">Before:</label>
-            <input type="text" id="before" placeholder="Enter before">
-            <label for="enginesearch">Engine Search:</label>
-            <input type="text" id="enginesearch" placeholder="Enter engine search">
-            <label for="pages">Pages:</label>
-            <input type="number" id="pages" placeholder="Enter pages">
-            <label for="name">Name:</label>
-            <input type="text" id="name" placeholder="Enter name">
-            <label for="minutes">Minutes:</label>
-            <input type="number" id="minutes" placeholder="Enter minutes">
-            <label for="parent_directory">Parent Directory:</label>
-            <input type="text" id="parent_directory" placeholder="Enter parent directory">
-            <label for="proxy">Proxy:</label>
-            <input type="text" id="proxy" placeholder="Enter proxy">
-            <button onclick="sendSearchRequest()">Search</button>
-        </div>
+        <form id="searchForm" class="input-section">
+            <div class="form-group">
+                <label for="target_url">目标 URL:</label>
+                <input type="text" id="target_url" name="target_url" placeholder="输入目标 URL">
+            </div>
+        
+            <div class="form-group">
+                <label for="keyword">关键词:</label>
+                <input type="text" id="keyword" name="keyword" placeholder="输入关键词">
+            </div>
+        
+            <div class="form-group">
+                <label for="after">之后:</label>
+                <input type="text" id="after" name="after" placeholder="输入开始日期">
+            </div>
+        
+            <div class="form-group">
+                <label for="before">之前:</label>
+                <input type="text" id="before" name="before" placeholder="输入结束日期">
+            </div>
+        
+            <div class="form-group">
+                <label for="enginesearch">搜索引擎:</label>
+                <input type="text" id="enginesearch" name="enginesearch" placeholder="输入搜索引擎">
+            </div>
+        
+            <div class="form-group">
+                <label for="pages">页数:</label>
+                <input type="number" id="pages" name="pages" placeholder="输入页数">
+            </div>
+        
+            <div class="form-group">
+                <label for="name">名称:</label>
+                <input type="text" id="name" name="name" placeholder="输入名称">
+            </div>
+        
+            <div class="form-group">
+                <label for="minutes">分钟数:</label>
+                <input type="number" id="minutes" name="minutes" placeholder="输入分钟数">
+            </div>
+        
+            <div class="form-group">
+                <label for="parent_directory">父目录:</label>
+                <input type="text" id="parent_directory" name="parent_directory" placeholder="输入父目录">
+            </div>
+        
+            <div class="form-group">
+                <label for="proxy">代理:</label>
+                <input type="text" id="proxy" name="proxy" placeholder="输入代理">
+            </div>
+        
+            <button type="submit">搜索</button>
+        </form>        
         <div class="output-section">
             <div class="left-section">
                 <h2>UUID List</h2>
-                <button onclick="refreshList()">Refresh List</button>
+                <button id="refreshListBtn">Refresh List</button>
                 <ul id="uuidList"></ul>
             </div>
-            <div class="right-section">
-                <div id="jsonDisplay"></div>
-            </div>
+            <div class="right-section" id="jsonDisplay"></div>
         </div>
     </div>
 
-    <script>
-        function sendSearchRequest() {
-            const inputData = {
-                target_url: document.getElementById('target_url').value,
-                keyword: document.getElementById('keyword').value,
-                after: document.getElementById('after').value,
-                before: document.getElementById('before').value,
-                enginesearch: document.getElementById('enginesearch').value,
-                pages: parseInt(document.getElementById('pages').value) || null,
-                name: document.getElementById('name').value,
-                minutes: parseInt(document.getElementById('minutes').value) || null,
-                parent_directory: document.getElementById('parent_directory').value,
-                proxy: document.getElementById('proxy').value,
-            };
-
-            // Assuming you are using fetch to send data to the API
-            fetch('api/RunSearchApi', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(inputData),
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Display UUID in the left-bottom section
-                const uuidList = document.getElementById('uuidList');
-                const listItem = document.createElement('li');
-                listItem.textContent = data.uuid;
-                listItem.onclick = function() {
-                    displayJson(inputData);
-                };
-                uuidList.prepend(listItem);
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        function displayJson(data) {
-            // Display JSON data in the right section
-            const jsonDisplay = document.getElementById('jsonDisplay');
-            jsonDisplay.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-        }
-
-        function refreshList() {
-            // 请求GetSearchqueryApi接口获取数据
-            fetch('api/GetSearchListApi', {
-                method: 'POST', // 使用POST请求
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // 可能需要根据实际情况传递一些数据
-                body: JSON.stringify({ /* 按需传递数据 */ }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                const uuidList = document.getElementById('uuidList');
-                uuidList.innerHTML = ""; // 清空原有列表
-
-                if (data.status === 'success') {
-                    // 如果有数据，将每个UUID添加到列表中
-                    data.data.forEach(uuid => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = uuid;
-                        listItem.onclick = function() {
-                            // 点击列表项时请求详细数据
-                            requestDetailedData(uuid);
-                        };
-                        uuidList.appendChild(listItem);
-                    });
-                } else {
-                    // 如果没有数据，显示提示信息
-                    const noDataMessage = document.createElement('li');
-                    noDataMessage.textContent = '暂无数据';
-                    uuidList.appendChild(noDataMessage);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-        
-        function requestDetailedData(uuid) {
-            // 发送详细数据请求
-            fetch('api/GetSearchqueryApi', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ "uuid": uuid }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                const jsonDisplay = document.getElementById('jsonDisplay');
-                jsonDisplay.innerHTML = ""; // 清空原有数据
-
-                if (data.status === 'success') {
-                    // 如果有数据，显示query_value和minutes_value
-                    const queryValue = data.data.query_value;
-                    const request_body_value = data.data.request_body_value;
-
-                    // 创建展示区域R
-                    const displayArea = document.createElement('div');
-                    displayArea.innerHTML = `<p>Query Value: ${queryValue}</p><p>RequestBody Value: ${request_body_value}</p>`;
-                    jsonDisplay.appendChild(displayArea);
-                } else {
-                    // 如果没有数据，显示提示信息
-                    const errorMessage = document.createElement('p');
-                    errorMessage.textContent = '查询数据为空';
-                    jsonDisplay.appendChild(errorMessage);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-    </script>
+    <script src="{% static 'js/script.js' %}"></script>
 </body>
 </html>

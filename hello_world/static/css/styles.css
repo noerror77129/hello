@@ -1,0 +1,94 @@
+:root {
+    --primary-color: #4CAF50;
+    --background-color: #f2f2f2;
+    --text-color: #333;
+    --border-color: #ddd;
+    --input-background-color: #fff;
+    --input-border-radius: 5px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    height: 100%; /* 设置为100%高度 */
+    overflow: hidden; /* 避免整个页面出现滚动条 */
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden; /* 避免在容器中出现滚动条 */
+}
+
+.input-section {
+    flex: 0 1 auto; /* 允许这个区域根据内容大小自动调整高度 */
+    padding: 20px;
+    overflow-y: auto; /* 当内容超出时显示滚动条 */
+    background-color: var(--input-background-color);
+    border-radius: var(--input-border-radius);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: var(--input-border-radius);
+    cursor: pointer;
+}
+
+.output-section {
+    flex: 1; /* 占据剩余空间 */
+    display: flex;
+    overflow: hidden; /* 避免在输出部分出现滚动条 */
+}
+
+.left-section, .right-section {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto; /* 对于这些部分，当内容超出时显示滚动条 */
+    border-right: 1px solid var(--border-color);
+}
+
+.right-section {
+    border-left: none;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    margin-bottom: 10px;
+    cursor: pointer;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--input-border-radius);
+    background-color: var(--input-background-color);
+}
+
+li:hover {
+    background-color: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .output-section {
+        flex-direction: column;
+    }
+}
