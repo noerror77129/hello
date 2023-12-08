@@ -28,15 +28,111 @@ body, html {
 }
 
 .input-section {
-    flex: 0 1 auto; /* 允许这个区域根据内容大小自动调整高度 */
-    padding: 20px;
-    overflow-y: auto; /* 当内容超出时显示滚动条 */
-    background-color: var(--input-background-color);
-    border-radius: var(--input-border-radius);
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 创建两列布局 */
+    gap: 10px;
+    /* 其他样式 */
 }
 
 .form-group {
     margin-bottom: 15px;
+}
+
+.input-mock {
+    position: relative; /* 设置为相对定位 */
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    background-color: white;
+}
+
+.input-mock input {
+    border: none;
+    outline: none;
+    flex-grow: 1;
+}
+
+.selected-engine {
+    background-color: green;
+    color: white;
+    padding: 5px;
+    margin-right: 5px;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+#enginesearchDropdown {
+    /* position: absolute;  */
+    /* top: 100%; 位于输入框的正下方 */
+    left: 0;
+    width: 50%; /* 与输入框同宽 */
+    display: none; /* 默认不显示 */
+    position: absolute;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    background-color: white;
+    max-height: 200px;
+    overflow-y: auto; /* 如果选项太多，允许滚动 */
+}
+
+#enginesearchInput:active + #enginesearchDropdown,
+#enginesearchInput:focus + #enginesearchDropdown {
+    display: block; /* 当输入框处于激活状态时显示 */
+}
+
+/* 下拉框选项 */
+.option {
+    /* ...其他样式... */
+    position: relative;
+    padding-right: 20px; /* 为勾选标记留出空间 */
+}
+
+/* 勾选标记的样式 */
+.checkmark {
+    display: none;
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%); /* 垂直居中 */
+    color: green; /* 勾选标记为绿色 */
+}
+
+.option:hover {
+    background-color: #f0f0f0;
+}
+
+/* 已经选择的选项底色变灰，勾选标记显示 */
+.option.selected {
+    background-color: #f0f0f0;
+}
+
+/* 显示勾选标记 */
+.option.selected .checkmark {
+    display: block;
+}
+
+/* 选中的搜索引擎显示样式 */
+.selected-engine {
+    background-color: green;
+    color: white;
+    padding: 5px;
+    margin: 5px;
+    border-radius: 5px;
+    display: inline-block;
+    position: relative; /* 设置为相对定位 */
+    padding-right: 20px; /* 增加右内边距以容纳删除图标 */
+}
+
+.selected-engine .remove-icon {
+    position: absolute;
+    top: 50%;
+    right: 5px;
+    transform: translateY(-50%);
+    cursor: pointer; /* 鼠标悬停时显示指针，表示可点击 */
+    padding: 2px; /* 略微添加一些内边距 */
 }
 
 button {

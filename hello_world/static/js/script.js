@@ -6,11 +6,11 @@ function sendSearchRequest() {
         keyword: document.getElementById('keyword').value,
         after: document.getElementById('after').value,
         before: document.getElementById('before').value,
-        enginesearch: document.getElementById('enginesearch').value,
+        enginesearch: selectedEngines, // 发送选中的搜索引擎数组
         pages: parseInt(document.getElementById('pages').value) || null,
         name: document.getElementById('name').value,
         minutes: parseInt(document.getElementById('minutes').value) || null,
-        parent_directory: document.getElementById('parent_directory').value,
+        // parent_directory: document.getElementById('parent_directory').value,
         proxy: document.getElementById('proxy').value,
     };
 
@@ -139,5 +139,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 确保代码在文档加载完毕后执行
 document.addEventListener('DOMContentLoaded', function() {
-    // 可以在这里添加其他需要在页面加载完毕时执行的代码
+    var selectedEngines = [];
+    var input = document.getElementById('enginesearchInput');
+    var dropdown = document.getElementById('enginesearchDropdown');
+    var options = dropdown.getElementsByClassName('option');
+    var selectedEnginesDisplay = document.getElementById('selectedEnginesDisplay');
+
+    input.onclick = function(event) {
+        dropdown.style.display = 'block';
+        event.stopPropagation();
+    };
+
+    Array.from(options).forEach(function(element) {
+        element.onclick = function(event) {
+            var value = this.getAttribute('data-value');
+            var index = selectedEngines.indexOf(value);
+
+            if (index > -1) {
+                selectedEngines.splice(index, 1);
+                this.classList.remove('selected');
+            } else {
+                selectedEngines.push(value);
+                this.classList.add('selected');
+            }
+
+            updateSelectedEnginesDisplay();
+            event.stopPropagation();
+        };
+    });
+
+    Array.from(options).forEach(function(element) {
+        element.onclick = function(event) {
+            var value = this.getAttribute('data-value');
+            var index = selectedEngines.indexOf(value);
+
+            if (index > -1) {
+                selectedEngines.splice(index, 1);
+                this.classList.remove('selected');
+            } else {
+                selectedEngines.push(value);
+                this.classList.add('selected');
+            }
+
+            updateSelectedEnginesDisplay();
+            event.stopPropagation();
+        };
+    });
+
+    function updateSelectedEnginesDisplay() {
+        selectedEnginesDisplay.innerHTML = ''; // 清空显示区域
+        selectedEngines.forEach(function(engine) {
+            var div = document.createElement('div');
+            div.className = 'selected-engine';
+            div.textContent = engine; // 设置显示的引擎名称
+
+            // 添加删除图标
+            var removeIcon = document.createElement('span');
+            removeIcon.textContent = '×'; // 设置图标文本
+            removeIcon.className = 'remove-icon';
+            removeIcon.onclick = function() {
+                removeEngine(engine); // 移除引擎
+            };
+            div.appendChild(removeIcon);
+
+            selectedEnginesDisplay.appendChild(div); // 添加到显示区域
+        });
+    }
+
+    function removeEngine(engine) {
+        var index = selectedEngines.indexOf(engine);
+        if (index > -1) {
+            selectedEngines.splice(index, 1); // 从选中列表中移除
+            updateSelectedEnginesDisplay(); // 更新显示
+
+            // 取消下拉列表中相应选项的选中状态
+            Array.from(options).forEach(function(option) {
+                if (option.getAttribute('data-value') === engine) {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+    }
+
+    document.addEventListener('click', function() {
+        dropdown.style.display = 'none';
+    });
 });

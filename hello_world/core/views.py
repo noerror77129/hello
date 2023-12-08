@@ -23,7 +23,7 @@ def RunSearchApi(request):
         params = json.loads(request.body)
         uuid,query = TimingSearch(params)
         from .models import SearchList
-        new_entry = SearchList(uuid=uuid,query=query,minutes=params['minutes'])
+        new_entry = SearchList(uuid=uuid,query=query,minutes=params['minutes'],request_body=str(request.body))
         new_entry.save()
         return JsonResponse({'status': 'success', 'uuid': uuid})
     else:
@@ -121,8 +121,11 @@ def GetSearchqueryApi(request):
         params = json.loads(request.body)
         uuid = params['uuid']
         from .models import SearchList
-        search_res = SearchList.objects.filter(uuid=uuid).first()
-        print(search_res)
+        try:
+            search_res = SearchList.objects.filter(uuid=uuid).first()
+        except Exception as e:
+        # 日志记录异常 e
+            return JsonResponse({'status': 'error', 'data': '查询出错'})
         # 检查是否找到匹配的记录
         if search_res:
             response_data = {
