@@ -20,7 +20,7 @@ class SearchWriteEs(models.Model):
 # 任务列表
 class SearchList(models.Model):
     uuid = models.CharField(max_length=200)
-    query = models.TextField()
+    target_url = models.TextField()
     request_body = models.TextField(null=True,default='{}')
-    minutes = models.IntegerField(default=0)
+    target_name = models.TextField()
     pub_date = models.DateTimeField(auto_now_add=True)

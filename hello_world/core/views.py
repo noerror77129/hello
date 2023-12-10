@@ -6,6 +6,7 @@ import json
 from .search import TimingSearch,TimingSearchStop,SearchEsdata,NotifyRobot_file
 from .judgment import judgmentdata
 import sys
+import uuid
 
 def index(request):
     return render(
@@ -21,11 +22,13 @@ def index(request):
 def RunSearchApi(request):
     if request.method == 'POST':
         params = json.loads(request.body)
-        uuid,query = TimingSearch(params)
+        random_uuid = str(uuid.uuid4())
+        params['random_uuid'] = random_uuid
+        TimingSearch(params)
         from .models import SearchList
-        new_entry = SearchList(uuid=uuid,query=query,minutes=params['minutes'],request_body=str(request.body))
+        new_entry = SearchList(uuid=random_uuid,target_url=params['target_url'],target_name=params['name'],request_body=str(request.body))
         new_entry.save()
-        return JsonResponse({'status': 'success', 'uuid': uuid})
+        return JsonResponse({'status': 'success', 'uuid': random_uuid})
     else:
         # print("开始消息发送")
         # NotifyRobot_file("中融汇信期货有限公司")
@@ -44,10 +47,10 @@ def StopSearchApi(request):
         if TimingSearchStop(uuid):
             return JsonResponse({'status': 'success'})
         else:
-            return JsonResponse({'status': 'error', 'message': 'stop error'})
+            return JsonResponse({'status': 'failed', 'message': 'Has stop'})
     else:
-        print("终止服务")
-        sys.exit()
+        # print("终止服务")
+        # sys.exit()
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 # 下一次搜索不需要requests_save
@@ -108,8 +111,14 @@ def GetSearchListApi(request):
         from .models import SearchList
         entry_to_modify = SearchList.objects.all().order_by('-pub_date')
         if entry_to_modify:
-            # Extract only the 'query' field from each entry
-            data = [entry.uuid for entry in entry_to_modify]
+            # 创建每个条目的字典，并添加到数据列表中
+            data = [
+                {
+                    "name": entry.target_name + "--" + entry.target_url,
+                    "uuid": entry.uuid
+                }
+                for entry in entry_to_modify
+            ]
             return JsonResponse({'status': 'success', 'data': data}, safe=False)
         else:
             return JsonResponse({'status': 'error', 'data': 'no data'})
@@ -128,10 +137,25 @@ def GetSearchqueryApi(request):
             return JsonResponse({'status': 'error', 'data': '查询出错'})
         # 检查是否找到匹配的记录
         if search_res:
-            response_data = {
-                'query_value': search_res.query,
-                'request_body_value': search_res.request_body,
-                }
-            return JsonResponse({'status': 'success','data':response_data})
+            return JsonResponse({'status': 'success','data':search_res.request_body})
         else:
             return JsonResponse({'status': 'error', 'data': 'no data'})
+        
+@csrf_exempt
+def GetTaskRestartApi(request):
+    if request.method == 'POST':
+        params = json.loads(request.body)
+        has_restart = 0
+        from .models import SearchList
+        for task_uuid in params['all_uuid']:
+            task = SearchList.objects.filter(uuid=task_uuid).first()
+            if task:
+                TimingSearch(json.loads(task.request_body))
+                has_restart +=1
+            else:
+                continue
+
+        if has_restart == 0:
+            return JsonResponse({'status': 'Failed', 'data': 'no task need to restart'})
+
+        return JsonResponse({'status': 'Succeed', 'data': 'Restarted '+has_restart+' tasks'})

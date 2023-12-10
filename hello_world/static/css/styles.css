@@ -25,6 +25,9 @@ body, html {
     flex-direction: column;
     height: 100%;
     overflow: hidden; /* 避免在容器中出现滚动条 */
+    width:80%;
+    text-align: center;
+    margin-top: 25px;
 }
 
 .input-section {
@@ -67,9 +70,9 @@ body, html {
     /* position: absolute;  */
     /* top: 100%; 位于输入框的正下方 */
     left: 0;
-    width: 50%; /* 与输入框同宽 */
+    width: 100%; /* 与输入框同宽 */
     display: none; /* 默认不显示 */
-    position: absolute;
+    position: relative;
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 5px;
@@ -143,6 +146,10 @@ button {
     border-radius: var(--input-border-radius);
     cursor: pointer;
 }
+
+/* button:hover {
+    background-color: #e7e7e7;
+} */
 
 .output-section {
     flex: 1; /* 占据剩余空间 */

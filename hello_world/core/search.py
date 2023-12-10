@@ -178,10 +178,10 @@ def WriteEs(jsonout):
             print("再次写入ES失败,放弃写入")
             print(e)
 
-def requests_save(url, host, target_directory,jsonout,driver,query,enginesearch,save_urls_name):
+def requests_save(url, host,jsonout,driver,query,enginesearch,save_urls_name):
     # 创建目标目录，如果不存在
-    if not os.path.exists(target_directory):
-        os.makedirs(target_directory)
+    # if not os.path.exists(target_directory):
+    #     os.makedirs(target_directory)
 
     # 访问网站
     # print("访问￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥￥",url)
@@ -269,16 +269,20 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
         results = mysearch(engine,query, pages=pages)
     except Exception as e:
         # 如果达到最大重试次数，从任务队列中删除任务
-        print("搜索失败，达到最大尝试次数。错误信息:", e)            
+        print("搜索失败，达到最大尝试次数。错误信息:", e)
+        from .models import SearchList
+        entry_to_modify = SearchList.objects.filter(uuid=uuid).first()
+        if entry_to_modify:
+            entry_to_modify.delete()          
         TimingSearchStop(random_uuid)
         return
     if len(results) == 0:
         print("未搜索到数据，处理完成！")
     # 为每次搜索创建一个文件夹
     now = datetime.now()
-    folder_name = now.strftime("%Y-%m-%d-%H-%M-%S")
-    folder_path = os.path.join(parent_directory, folder_name)
-    os.makedirs(folder_path, exist_ok=True)
+    # folder_name = now.strftime("%Y-%m-%d-%H-%M-%S")
+    # folder_path = os.path.join(parent_directory, folder_name)
+    # os.makedirs(folder_path, exist_ok=True)
     print(target_name,"搜索到结果数为：@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",len(results),protocol)
     t = 1
     target_name = target_name+"-"+quote_plus(target_url)
@@ -324,7 +328,7 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
         # 读取数据,当is_valid为trues是，进入requests_save
         if checkIs_Is_valid(link) == True:
             print("开始爬取")
-            requests_save(link,host,os.path.join(folder_path, host),jsonout,driver,query,enginesearch,save_urls_name)
+            requests_save(link,host,jsonout,driver,query,enginesearch,save_urls_name)
 
     NotifyRobot_file(save_urls_name)
 
@@ -351,21 +355,23 @@ def SearchEsdata(uuid):
     print(res)
 
 def TimingSearch(params):
-    random_uuid = str(uuid.uuid4())
+    random_uuid = params['random_uuid']
     target_url = params['target_url']
     keyword = params['keyword']
     after = params['after']
     before = params['before']
     query = dealInput(target_url,keyword=keyword,before=before,after=after)
     protocol = get_url_protocol(target_url)
-    print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
-    print("搜索协议为^^^^^^^^^^^^^^^^^^^^^"+protocol)
+    # print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
+    # print("搜索协议为^^^^^^^^^^^^^^^^^^^^^"+protocol)
+    print(params)
+    print(params['enginesearch'])
     enginesearch = params['enginesearch']
     pages = params['pages']
     target_name = params['name']
     minutes = params['minutes']
     proxy = params['proxy']
-    parent_directory = params['parent_directory']
+    parent_directory = "save_files"
     print("random_uuid",random_uuid,"\t","enginesearch",enginesearch,"\t","pages",pages,"\t","minutes",minutes)
     # 初始化浏览器
     options = webdriver.ChromeOptions()
@@ -376,8 +382,8 @@ def TimingSearch(params):
     options.add_argument('--lang=zh-CN')
     options.add_argument('--disable-gpu')
     download_directory = os.path.join(parent_directory, "downloads")
-    if not os.path.exists(download_directory):
-        os.makedirs(download_directory)
+    # if not os.path.exists(download_directory):
+    #     os.makedirs(download_directory)
     prefs = {
         "download.default_directory": download_directory,
         "download.prompt_for_download": False,
@@ -398,7 +404,6 @@ def TimingSearch(params):
     # 启动调度器
     # scheduler.start()
     print("调度器创建结束")
-    return random_uuid,query
 
 def TimingSearchStop(random_uuid):
     print("调度器停止")

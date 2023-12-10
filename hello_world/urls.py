@@ -28,6 +28,8 @@ urlpatterns = [
     path("api/GetSearchListApi", core_views.GetSearchListApi),
     # 获取搜索任务对应的搜索数据
     path("api/GetSearchqueryApi", core_views.GetSearchqueryApi),
+    # 获取搜索任务对应的搜索数据
+    path("api/GetTaskRestartApi", core_views.GetTaskRestartApi),
     # 基于es的uuid查询数据
     path("api/SearchEsdataApi", core_views.EsDataApi),
     # 下一次搜索不需要requests_save
@@ -36,6 +38,7 @@ urlpatterns = [
     path("api/GetAllJudgmentApi", core_views.GetJudgmentDataApi),
     # 获取某条需要研判的数据es的uuid
     path("api/GetJudgmentApi", core_views.GetJudgmentEsUuidApi),
+
     path("admin/", admin.site.urls),
     path("__reload__/", include("django_browser_reload.urls")),
 ]
