@@ -399,8 +399,11 @@ def TimingSearch(params):
     if not scheduler.running:
         scheduler.start()
     # 添加调度任务
+    job = scheduler.get_job(random_uuid)
+    if job:
+        # 移除现有任务
+        scheduler.remove_job(random_uuid)
     scheduler.add_job(my_function, 'interval', minutes=minutes ,next_run_time=datetime.now(),kwargs={'query': query,'enginesearch':enginesearch, 'pages': pages,"proxy":proxy,'parent_directory': parent_directory, 'driver': driver,'target_name': target_name,"protocol" : protocol,"target_url":target_url,"random_uuid":random_uuid},id = random_uuid)
-
     # 启动调度器
     # scheduler.start()
     print("调度器创建结束")

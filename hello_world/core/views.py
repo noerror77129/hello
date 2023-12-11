@@ -3,10 +3,11 @@ from django.http import JsonResponse
 from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .search import TimingSearch,TimingSearchStop,SearchEsdata,NotifyRobot_file
+from .search import TimingSearch,TimingSearchStop,SearchEsdata,NotifyRobot_file,stop_tasks_list
 from .judgment import judgmentdata
 import sys
 import uuid
+from django.utils import timezone
 
 def index(request):
     return render(
@@ -21,14 +22,21 @@ def index(request):
 @csrf_exempt
 def RunSearchApi(request):
     if request.method == 'POST':
-        params = json.loads(request.body)
-        random_uuid = str(uuid.uuid4())
-        params['random_uuid'] = random_uuid
-        TimingSearch(params)
         from .models import SearchList
-        new_entry = SearchList(uuid=random_uuid,target_url=params['target_url'],target_name=params['name'],request_body=str(request.body))
-        new_entry.save()
-        return JsonResponse({'status': 'success', 'uuid': random_uuid})
+        params = json.loads(request.body)
+        entry_to_modify = SearchList.objects.filter(target_url=params['target_url'],target_name=params['name']).first()
+        if entry_to_modify:
+            entry_to_modify.request_body = str(json.dumps(params))
+            entry_to_modify.pub_date = timezone.now()
+            entry_to_modify.save()
+            params['random_uuid'] = entry_to_modify.uuid
+        else:
+            random_uuid = str(uuid.uuid4())
+            params['random_uuid'] = random_uuid
+            new_entry = SearchList(uuid=random_uuid,target_url=params['target_url'],target_name=params['name'],request_body=str(json.dumps(params)))
+            new_entry.save()
+        TimingSearch(params)
+        return JsonResponse({'status': 'success', 'uuid': params['random_uuid']})
     else:
         # print("开始消息发送")
         # NotifyRobot_file("中融汇信期货有限公司")
@@ -150,12 +158,13 @@ def GetTaskRestartApi(request):
         for task_uuid in params['all_uuid']:
             task = SearchList.objects.filter(uuid=task_uuid).first()
             if task:
+                task.pub_date = timezone.now()
+                task.save()
                 TimingSearch(json.loads(task.request_body))
                 has_restart +=1
             else:
                 continue
-
         if has_restart == 0:
             return JsonResponse({'status': 'Failed', 'data': 'no task need to restart'})
 
-        return JsonResponse({'status': 'Succeed', 'data': 'Restarted '+has_restart+' tasks'})
+        return JsonResponse({'status': 'Succeed', 'data': 'Restarted '+str(has_restart)+' tasks'})

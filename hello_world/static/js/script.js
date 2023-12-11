@@ -86,7 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function() {
         dropdown.style.display = 'none';
     });
-
+    //初次加载刷新列表数据
+    refreshList();
 
     // 添加事件监听器到搜索表单
     const searchForm = document.getElementById('searchForm');
@@ -112,6 +113,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 发送搜索请求
 function sendSearchRequest(selectedEngines) {
+    // 表单验证
+    const targetUrl = document.getElementById('target_url').value;
+    const enginesearch = selectedEngines;
+    const name = document.getElementById('name').value;
+    let minutes = parseInt(document.getElementById('minutes').value);
+    let pages = parseInt(document.getElementById('pages').value);
+
+    let missingFields = [];
+    if (!targetUrl) missingFields.push('目标 URL');
+    if (!enginesearch.length) missingFields.push('搜索引擎');
+    if (!name) missingFields.push('目标名称');
+    if (isNaN(minutes) || minutes < 1 || minutes > 43200) {
+        missingFields.push('间隔分钟数 (1 - 43200)');
+    } else {
+        minutes = minutes || 1440; // 默认值
+    }
+    if (isNaN(pages) || pages < 0 || pages > 50) {
+        missingFields.push('搜索页数 (0 - 50)');
+    } else {
+        pages = pages || 20; // 默认值
+    }
+
+    if (missingFields.length > 0) {
+        alert('请填写以下必填项: ' + missingFields.join(', '));
+        return;
+    }
     // 收集输入数据
     const inputData = {
         target_url: document.getElementById('target_url').value,
@@ -135,14 +162,7 @@ function sendSearchRequest(selectedEngines) {
     })
     .then(response => response.json())
     .then(data => {
-        // 在左侧部分显示UUID
-        const uuidList = document.getElementById('uuidList');
-        const listItem = document.createElement('li');
-        listItem.textContent = data.uuid;
-        listItem.onclick = function() {
-            displayJson(inputData);
-        };
-        uuidList.prepend(listItem);
+        refreshList();
     })
     .catch(error => console.error('Error:', error));
 }
@@ -156,7 +176,8 @@ function displayJson(data) {
 
 function restartAllTasks() {
     const uuidList = document.getElementById('uuidList');
-    const allUuids = Array.from(uuidList.querySelectorAll('li span')).map(span => span.textContent);
+    // 获取所有 li 元素，并从每个元素的 data-uuid 属性中提取 uuid
+    const allUuids = Array.from(uuidList.querySelectorAll('li')).map(li => li.dataset.uuid);
 
     fetch('api/GetTaskRestartApi', {
         method: 'POST',
@@ -212,6 +233,14 @@ function refreshList() {
                 };
                 listItem.appendChild(refreshBtn);
 
+                // 添加删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '删除';
+                deleteBtn.onclick = function() {
+                    deleteTask(item.uuid); // 删除任务的逻辑
+                };
+                listItem.appendChild(deleteBtn);
+
                 // 添加详细数据请求的点击事件
                 listItem.onclick = function() {
                     requestDetailedData(item.uuid); // 使用 UUID 请求详细数据
@@ -247,6 +276,29 @@ function refreshSingleItem(uuid) {
     .catch(error => console.error('Error:', error));
 }
 
+// 删除任务的函数
+function deleteTask(uuid) {
+    fetch('api/StopSearchApi', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ "uuid": uuid }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('删除成功');
+            refreshList(); // 重新加载列表
+        } else if (data.status === 'failed') {
+            alert('任务已停止');
+        } else if (data.status === 'error') {
+            alert('无效的请求方法');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
 
 // 请求详细数据
 function requestDetailedData(uuid) {
@@ -265,12 +317,9 @@ function requestDetailedData(uuid) {
 
         // 展示查询到的数据
         if (data.status === 'success') {
-            const queryValue = data.data.query_value;
-            const request_body_value = data.data.request_body_value;
-
-            const displayArea = document.createElement('div');
-            displayArea.innerHTML = `<p>Query Value: ${queryValue}</p><p>RequestBody Value: ${request_body_value}</p>`;
-            jsonDisplay.appendChild(displayArea);
+            // 将 search_res.request 的 JSON 数据格式化并展示
+            const requestData = JSON.stringify(data.data, null, 2); // 格式化 JSON 数据
+            jsonDisplay.innerHTML = `<pre>${requestData}</pre>`;
         } else {
             const errorMessage = document.createElement('p');
             errorMessage.textContent = '查询数据为空';
