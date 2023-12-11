@@ -124,31 +124,28 @@ function sendSearchRequest(selectedEngines) {
     if (!targetUrl) missingFields.push('目标 URL');
     if (!enginesearch.length) missingFields.push('搜索引擎');
     if (!name) missingFields.push('目标名称');
-    if (isNaN(minutes) || minutes < 1 || minutes > 43200) {
+    // 检查是否超出范围
+    if (minutes < 1 || minutes > 43200) {
         missingFields.push('间隔分钟数 (1 - 43200)');
-    } else {
-        minutes = minutes || 1440; // 默认值
     }
-    if (isNaN(pages) || pages < 0 || pages > 50) {
+    if (pages < 0 || pages > 50) {
         missingFields.push('搜索页数 (0 - 50)');
-    } else {
-        pages = pages || 20; // 默认值
     }
 
     if (missingFields.length > 0) {
-        alert('请填写以下必填项: ' + missingFields.join(', '));
+        alert('请填写以下必填项或更正错误: ' + missingFields.join(', '));
         return;
     }
     // 收集输入数据
     const inputData = {
         target_url: document.getElementById('target_url').value,
+        enginesearch: selectedEngines, // 发送选中的搜索引擎数组
+        name: document.getElementById('name').value,
+        minutes: parseInt(document.getElementById('minutes').value) || null,
+        pages: parseInt(document.getElementById('pages').value) || null,
         keyword: document.getElementById('keyword').value,
         after: document.getElementById('after').value,
         before: document.getElementById('before').value,
-        enginesearch: selectedEngines, // 发送选中的搜索引擎数组
-        pages: parseInt(document.getElementById('pages').value) || null,
-        name: document.getElementById('name').value,
-        minutes: parseInt(document.getElementById('minutes').value) || null,
         proxy: document.getElementById('proxy').value,
     };
 
@@ -168,10 +165,24 @@ function sendSearchRequest(selectedEngines) {
 }
 
 // 展示JSON数据
-function displayJson(data) {
-    // 在右侧部分展示JSON数据
-    const jsonDisplay = document.getElementById('jsonDisplay');
-    jsonDisplay.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+function displayJson(strData) {
+    try {
+        // 如果数据包含转义字符，先解析一次
+        const rawData = JSON.parse(strData);
+
+        // 再次解析以确保得到 JSON 对象
+        const jsonData = JSON.parse(rawData);
+
+        // 格式化 JSON 对象为字符串
+        const formattedJson = JSON.stringify(jsonData, null, 4); // 使用4个空格进行缩进
+
+        // 在页面上展示格式化的 JSON 数据
+        const jsonDisplay = document.getElementById('jsonDisplay');
+        jsonDisplay.innerHTML = `<pre>${formattedJson}</pre>`;
+    } catch (error) {
+        console.error('解析 JSON 数据时出错: ', error);
+        // 可以选择在页面上显示错误信息
+    }
 }
 
 function restartAllTasks() {
@@ -227,7 +238,7 @@ function refreshList() {
 
                 // 添加刷新按钮
                 const refreshBtn = document.createElement('button');
-                refreshBtn.textContent = '刷新';
+                refreshBtn.textContent = '重启任务';
                 refreshBtn.onclick = function() {
                     refreshSingleItem(item.uuid); // 使用 UUID 刷新单个项目
                 };
@@ -235,7 +246,7 @@ function refreshList() {
 
                 // 添加删除按钮
                 const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = '删除';
+                deleteBtn.textContent = '中止任务';
                 deleteBtn.onclick = function() {
                     deleteTask(item.uuid); // 删除任务的逻辑
                 };
@@ -302,7 +313,6 @@ function deleteTask(uuid) {
 
 // 请求详细数据
 function requestDetailedData(uuid) {
-    // 向后端发送请求，获取详细数据
     fetch('api/GetSearchqueryApi', {
         method: 'POST',
         headers: {
@@ -315,17 +325,28 @@ function requestDetailedData(uuid) {
         const jsonDisplay = document.getElementById('jsonDisplay');
         jsonDisplay.innerHTML = ""; // 清空现有数据
 
-        // 展示查询到的数据
         if (data.status === 'success') {
-            // 将 search_res.request 的 JSON 数据格式化并展示
-            const requestData = JSON.stringify(data.data, null, 2); // 格式化 JSON 数据
-            jsonDisplay.innerHTML = `<pre>${requestData}</pre>`;
+            try {
+                // 解析 JSON 字符串
+                const jsonData = JSON.parse(data.data);
+
+                // 格式化 JSON 对象为字符串
+                const formattedJson = JSON.stringify(jsonData, null, 4);
+
+                // 展示格式化的 JSON 数据
+                jsonDisplay.innerHTML = `<pre>${formattedJson}</pre>`;
+            } catch (error) {
+                console.error('解析 JSON 数据时出错: ', error);
+                jsonDisplay.textContent = 'JSON 解析错误';
+            }
         } else {
             const errorMessage = document.createElement('p');
             errorMessage.textContent = '查询数据为空';
             jsonDisplay.appendChild(errorMessage);
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+        console.error('Error:', error);
+        jsonDisplay.textContent = '请求出错';
+    });
 }
-

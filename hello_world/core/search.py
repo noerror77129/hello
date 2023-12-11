@@ -439,9 +439,9 @@ def NotifyRobot_url(mes):
     requests.post(url=URL, json=mBody, headers=mHeader)
 
 def NotifyRobot_file(filename):
-    # URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=160505dc-156e-4d81-ad5e-273041ad31f8' #正式
+    URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=160505dc-156e-4d81-ad5e-273041ad31f8' #正式
     print("reach here")
-    URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8675749b-4d33-492e-992a-330f2b318775' #测试
+    # URL = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=8675749b-4d33-492e-992a-330f2b318775' #测试
     if not os.path.exists(filename):
         print("文件不存在")
         return

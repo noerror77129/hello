@@ -161,6 +161,7 @@ button {
     flex: 1;
     padding: 20px;
     overflow-y: auto; /* 对于这些部分，当内容超出时显示滚动条 */
+    text-align: left;
     border-right: 1px solid var(--border-color);
 }
 

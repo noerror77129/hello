@@ -44,12 +44,12 @@
         
             <div class="form-group">
                 <label for="minutes">间隔分钟数:<span style="color: red;">*</span></label>
-                <input type="number" id="minutes" name="minutes" placeholder="输入分钟数">
+                <input type="number" id="minutes" name="minutes" placeholder="输入分钟数" value="1440">
             </div>
-        
+            
             <div class="form-group">
                 <label for="pages">搜索页数:<span style="color: red;">*</span></label>
-                <input type="number" id="pages" name="pages" placeholder="输入页数">
+                <input type="number" id="pages" name="pages" placeholder="输入页数" value="20">
             </div>
 
             <div class="form-group">
@@ -76,9 +76,9 @@
         </form>        
         <div class="output-section">
             <div class="left-section">
-                <h2>UUID List</h2>
-                <button id="refreshListBtn">Refresh List</button>
-                <button id="restartAllTasksBtn">Restart All Tasks</button>
+                <h2>搜索数据列表</h2>
+                <button id="refreshListBtn">刷新列表</button>
+                <button id="restartAllTasksBtn">重启全部任务</button>
                 <ul id="uuidList"></ul>
             </div>
             <div class="right-section" id="jsonDisplay"></div>
