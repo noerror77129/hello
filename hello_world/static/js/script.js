@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
         // 默认选中前三个选项
-        var defaultEngines = ['google', 'bing', 'yahoo'];
+        var defaultEngines = ['google', 'bing', 'baidu'];
         Array.from(options).forEach(function(option) {
             if (defaultEngines.includes(option.getAttribute('data-value'))) {
                 option.classList.add('selected');

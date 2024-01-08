@@ -360,8 +360,8 @@ def TimingSearch(params):
     keyword = params['keyword']
     after = params['after']
     before = params['before']
+    protocol,target_url  = split_url(target_url)
     query = dealInput(target_url,keyword=keyword,before=before,after=after)
-    protocol = get_url_protocol(target_url)
     # print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
     # print("搜索协议为^^^^^^^^^^^^^^^^^^^^^"+protocol)
     print(params)
@@ -506,6 +506,18 @@ def delete_file(filename):
 def get_url_protocol(url):
     parsed_url = urlparse(url)
     return parsed_url.scheme if parsed_url.scheme else None
+
+def split_url(url):
+    parsed_url = urlparse(url)
+    scheme = parsed_url.scheme
+
+    # 如果没有协议，返回 None 和原始 URL
+    if not scheme:
+        return None, url
+
+    # 剩余部分是协议后的所有内容，去除 '://'
+    rest = url[len(scheme) + len('://'):]
+    return scheme, rest
 
 def process_file(file_path, target_protocol):
     # 判断文件是否存在
