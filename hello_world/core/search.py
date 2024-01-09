@@ -364,8 +364,8 @@ def TimingSearch(params):
     keyword = params['keyword']
     after = params['after']
     before = params['before']
-    protocol,target_url  = split_url(target_url)
-    query = dealInput(target_url,keyword=keyword,before=before,after=after)
+    protocol,search_url  = split_url(target_url)
+    query = dealInput(search_url,keyword=keyword,before=before,after=after)
     # print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
     # print("搜索协议为^^^^^^^^^^^^^^^^^^^^^"+protocol)
     print(params)
