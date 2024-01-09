@@ -128,8 +128,8 @@ function sendSearchRequest(selectedEngines) {
     if (minutes < 1 || minutes > 43200) {
         missingFields.push('间隔分钟数 (1 - 43200)');
     }
-    if (pages < 0 || pages > 50) {
-        missingFields.push('搜索页数 (0 - 50)');
+    if (pages < 0 || pages > 200) {
+        missingFields.push('搜索页数 (0 - 200)');
     }
 
     if (missingFields.length > 0) {

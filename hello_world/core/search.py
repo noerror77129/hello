@@ -287,13 +287,11 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
     t = 1
     target_name = target_name+"-"+quote_plus(target_url)
     save_urls_name =  "save_urls/"+target_name+".txt"
-    last_result = []
-    if os.path.exists(save_urls_name):
-        last_result = read_file(save_urls_name)
-        write_to_file_top(save_urls_name,"-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
-    else:
-        with open(save_urls_name, 'a+',encoding="UTF-8") as file:
-            file.write("-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
+    # save_urls_name_all =  "save_urls/all-"+target_name+".txt"
+
+    last_result = init_savefile(save_urls_name)
+    # last_all_result = init_savefile(save_urls_name_all)
+    
     for result in results:
         print("开始域名第个域名",t,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",result['link'])
         t=t+1
@@ -302,6 +300,12 @@ def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_na
             return
         
         if not get_url_protocol(result['link']) == protocol:
+            # if result['link'] in last_all_result:
+            #     print("已处理过数据，跳过")
+            #     continue
+            # if not is_url_accessible(result['link']):
+            #     continue
+            # write_to_file_top(save_urls_name_all,result['link'])
             print("协议不满足，跳过")
             continue
 
@@ -575,6 +579,17 @@ def mysearch(engine,query, pages, max_retries=5):
             else:
                 # 达到最大重试次数时，抛出异常或进行其他处理
                 raise
+# 初始化url的存储文件
+def init_savefile(save_urls_name):
+    now = datetime.now()
+    last_result = []
+    if os.path.exists(save_urls_name):
+        last_result = read_file(save_urls_name)
+        write_to_file_top(save_urls_name,"-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
+    else:
+        with open(save_urls_name, 'a+',encoding="UTF-8") as file:
+            file.write("-"*15+now.strftime("%Y-%m-%d-%H-%M-%S")+"-"*15)
+    return last_result
 
 def read_file(file_path):
     try:
