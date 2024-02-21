@@ -3,7 +3,8 @@ import os
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse,quote_plus,parse_qs
 import re
-from search_engines.multiple_search_engines import MultipleSearchEngines
+from hello_world.search_engines.multiple_search_engines import MultipleSearchEngines
+from hello_world.search_engines.engines import Google,Baidu
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -258,24 +259,29 @@ def checkIs_Is_valid(link):
 
 def my_function(query,enginesearch,pages,proxy,parent_directory,driver,target_name,protocol,target_url,random_uuid):
     add_taskid(random_uuid)
-    if len(enginesearch) != 0:
-        print("使用多引擎搜索",str(enginesearch))
-        engine = MultipleSearchEngines(engines=enginesearch,proxy=proxy)
-    else:
+    if len(enginesearch) <= 0:
         print("输入引擎有误")
         return
-    # 进行搜索
-    try:
-        results = mysearch(engine,query, pages=pages)
-    except Exception as e:
-        # 如果达到最大重试次数，从任务队列中删除任务
-        print("搜索失败，达到最大尝试次数。错误信息:", e)
-        from .models import SearchList
-        entry_to_modify = SearchList.objects.filter(uuid=uuid).first()
-        if entry_to_modify:
-            entry_to_modify.delete()          
-        TimingSearchStop(random_uuid)
-        return
+    while len(enginesearch) > 0:
+        print("使用多引擎搜索",str(enginesearch))
+        engine = MultipleSearchEngines(engines=enginesearch,proxy=proxy)
+
+        # 进行搜索
+        try:
+            results = mysearch(engine,query, pages=pages)
+            break
+        except Exception as e:
+            # 如果达到最大重试次数，从任务队列中删除任务
+            print("搜索失败，达到最大尝试次数。错误信息:", e)
+            enginesearch.pop(0)  # 删除当前失败的搜索引擎
+            if len(enginesearch) != 0:
+                continue  # 继续下一个搜索引擎的重试
+            from .models import SearchList
+            entry_to_modify = SearchList.objects.filter(uuid=uuid).first()
+            if entry_to_modify:
+                entry_to_modify.delete()          
+            TimingSearchStop(random_uuid)
+            return
     if len(results) == 0:
         print("未搜索到数据，处理完成！")
     # 为每次搜索创建一个文件夹
@@ -364,8 +370,8 @@ def TimingSearch(params):
     keyword = params['keyword']
     after = params['after']
     before = params['before']
-    protocol,search_url  = split_url(target_url)
-    query = dealInput(search_url,keyword=keyword,before=before,after=after)
+    protocol,target_url  = split_url(target_url)
+    query = dealInput(target_url,keyword=keyword,before=before,after=after)
     # print("搜索语法为^^^^^^^^^^^^^^^^^^^^^"+query)
     # print("搜索协议为^^^^^^^^^^^^^^^^^^^^^"+protocol)
     print(params)
@@ -573,6 +579,8 @@ def mysearch(engine,query, pages, max_retries=5):
             return results  # 如果成功，则立即返回结果
         except Exception as e:
             print(f"重试 {attempt}/{max_retries}，发生错误: {e}")
+            import traceback
+            traceback.print_exc()
             if attempt < max_retries:
                 # 如果尚未达到最大重试次数，继续重试
                 continue
